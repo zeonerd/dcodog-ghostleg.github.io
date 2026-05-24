@@ -214,25 +214,36 @@
             </div>
 
             <!-- Auto Setup via Text Paste -->
-            <label class="block text-lg font-bold mb-4 text-neon-blue">명단 자동 세팅 (텍스트 붙여넣기)</label>
+            <label class="block text-lg font-bold mb-4 text-neon-blue">명단 자동 세팅 (선곡 리스트 붙여넣기)</label>
             <textarea id="paste-area" class="w-full h-32 bg-gray-800/50 text-gray-200 border border-gray-500 rounded-xl p-4 focus:border-neon-blue focus:ring-1 focus:ring-neon-blue focus:outline-none resize-none mb-4 custom-scrollbar" placeholder="여기에 카카오톡 명단 텍스트를 붙여넣으세요...&#10;(예: 1. 민규&#10;     2. 호현)"></textarea>
             <button id="btn-auto-setup" class="btn-neon btn-neon-blue w-full py-4 rounded-xl text-xl font-title tracking-wider">
-                명단 붙여넣기로 세팅하기 📋
+                명단 붙여넣어 세팅하기 📋
             </button>
         </div>
 
         <!-- Ladder Game Section -->
         <div id="game-section" class="w-full relative hidden glass-panel rounded-3xl p-4 md:p-8 pb-20 shadow-2xl">
-            <!-- Top Input Nodes (Singers) -->
-            <div id="top-nodes" class="nodes-container mb-4"></div>
             
-            <!-- Ladder Canvas -->
-            <div id="ladder-area" class="w-full h-[400px]">
-                <canvas id="ladder-canvas"></canvas>
+            <!-- Mobile Scroll Hint -->
+            <div id="scroll-hint" class="text-center text-neon-pink text-sm mb-4 hidden animate-pulse font-bold">
+                👉 좌우로 스와이프하여 전체 사다리를 확인하세요! 👈
             </div>
-            
-            <!-- Bottom Result Nodes (Order) -->
-            <div id="bottom-nodes" class="nodes-container mt-4"></div>
+
+            <!-- Scrollable Wrapper -->
+            <div id="scroll-wrapper" class="w-full overflow-x-auto custom-scrollbar pb-4">
+                <div id="ladder-inner-container" class="relative mx-auto" style="min-width: 100%;">
+                    <!-- Top Input Nodes (Singers) -->
+                    <div id="top-nodes" class="nodes-container mb-4"></div>
+                    
+                    <!-- Ladder Canvas -->
+                    <div id="ladder-area" class="w-full h-[400px]">
+                        <canvas id="ladder-canvas"></canvas>
+                    </div>
+                    
+                    <!-- Bottom Result Nodes (Order) -->
+                    <div id="bottom-nodes" class="nodes-container mt-4"></div>
+                </div>
+            </div>
 
             <!-- Action Buttons -->
             <div class="mt-12 flex gap-4 w-full max-w-lg mx-auto justify-center relative z-20">
@@ -399,10 +410,30 @@
             topNodesContainer.innerHTML = '';
             bottomNodesContainer.innerHTML = '';
             
-            // Adjust canvas to fit container
+            const scrollWrapper = document.getElementById('scroll-wrapper');
+            const innerContainer = document.getElementById('ladder-inner-container');
             const ladderArea = document.getElementById('ladder-area');
-            canvasWidth = ladderArea.clientWidth;
-            canvasHeight = ladderArea.clientHeight;
+            const scrollHint = document.getElementById('scroll-hint');
+            
+            // 모바일 스크롤 처리를 위한 너비 계산 로직
+            innerContainer.style.width = '100%'; // 측정 전 초기화
+            let containerWidth = scrollWrapper.clientWidth;
+            
+            const isMobile = window.innerWidth <= 768;
+            const minWidthPerPlayer = 75; // 모바일에서 참가자 1명당 보장할 최소 가로 너비 (픽셀)
+            const requiredWidth = isMobile ? numPlayers * minWidthPerPlayer : 0;
+            
+            canvasWidth = Math.max(containerWidth, requiredWidth);
+            
+            // 필요 너비가 화면 너비보다 크면 스크롤 영역 확장 및 안내 문구 표시
+            if (canvasWidth > containerWidth) {
+                innerContainer.style.width = `${canvasWidth}px`;
+                scrollHint.classList.remove('hidden');
+            } else {
+                scrollHint.classList.add('hidden');
+            }
+
+            canvasHeight = ladderArea.clientHeight || 400;
             canvas.width = canvasWidth;
             canvas.height = canvasHeight;
 
@@ -850,9 +881,14 @@
         });
 
         // Window resize handler to rebuild layout if needed
+        let lastWindowWidth = window.innerWidth;
         window.addEventListener('resize', () => {
-            if (!isAnimating && document.getElementById('ladder-area').clientWidth > 0 && gameSection.classList.contains('hidden') === false) {
-                 setupGame(); // Redraw static board
+            // 모바일 브라우저 상하 스크롤 시 발생하는 불필요한 resize 방지 (가로 너비 변경 시에만 작동)
+            if (window.innerWidth !== lastWindowWidth) {
+                lastWindowWidth = window.innerWidth;
+                if (!isAnimating && document.getElementById('ladder-area').clientWidth > 0 && gameSection.classList.contains('hidden') === false) {
+                     setupGame(); // Redraw static board
+                }
             }
         });
     </script>
